@@ -1,31 +1,46 @@
 #!/usr/bin/node
-/**
- * this module gets the characters of a star war movie
- */
+
 const request = require('request');
 
-const movieId = process.argv[2];
-const url = `https://swapi-api.alx-tools.com/api/films/${movieId}`;
-
-async function getCharacterName (url) {
-  await request(url, (err, res, body) => {
-    if (err) {
-      console.log(err);
-    } else {
-      const name = JSON.parse(body).name;
-      console.log(name);
-    }
+function getDataFrom (url) {
+  return new Promise(function (resolve, reject) {
+    request(url, function (err, _res, body) {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(body);
+      }
+    });
   });
 }
 
-request.get(url, (err, res, body) => {
-  if (err) {
-    console.log(err);
-  } else {
-    const characters = JSON.parse(body).characters;
+function errHandler (err) {
+  console.log(err);
+}
 
-    for (let i = 0; i < characters.length; i++) {
-      getCharacterName(characters[i]);
-    }
-  }
-});
+function printMovieCharacters (movieId) {
+  const movieUri = `https://swapi-api.hbtn.io/api/films/${movieId}`;
+
+  getDataFrom(movieUri)
+    .then(JSON.parse, errHandler)
+    .then(function (res) {
+      const characters = res.characters;
+      const promises = [];
+
+      for (let i = 0; i < characters.length; ++i) {
+        promises.push(getDataFrom(characters[i]));
+      }
+
+      Promise.all(promises)
+        .then((results) => {
+          for (let i = 0; i < results.length; ++i) {
+            console.log(JSON.parse(results[i]).name);
+          }
+        })
+        .catch((err) => {
+          console.log(err);
+        });
+    });
+}
+
+printMovieCharacters(process.argv[2]);
